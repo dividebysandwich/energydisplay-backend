@@ -1,1 +1,8 @@
 # energydisplay-backend
+
+This is a quick and dirty Victron-compatible backend for the energydisplay and energydisplay-m5 projects. It is designed to run on a linux pc or raspberry that is in the same LAN as a Victron inverter system. No special database is required, only a webserver. You have to set up a root password on the Victron system using the remote console, then enter the appropriate data into the vrm_fetch.php script.
+The backend comes in two parts: vrm_fetch.php is supposed to be run via runfetch.sh (for example using GNU SCREEN in the background), while vrm_histogram.php should be run once per minute via cronjob. This script takes the average of the values collected by vrm_fetch and adds to the histogram graph data files.
+
+NOTE: You could run the dbus commands directly on the beaglebone used by Victron, and have these scripts on that system as well, but this would mean that any firmware update by Victron would erase your changes. Hence I opted to keep this on a separate computer/raspberry and use SSH to remotely issue the required commands. You can easily adapt this to whatever system you have. It is recommended to read directly from the sensors as much as possible instead of querying manufacturer cloud data stores, because the cloud solutions tend to keep only averages and not really "live" values.
+
+If you also run the ELK stack, there's a bit of code to fill in an elasticsearch index with the retrieved data.
