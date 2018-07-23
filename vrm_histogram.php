@@ -12,8 +12,10 @@ function writeValueToFile($file, $value, $append = false)
 
 } 
 
-    $lastvalues = explode("\n",trim(file_get_contents('/var/www/html/status/pv_w.txt')));
-    writeValueToFile('pv_w.txt','');
+function processHistogram($path, $sourcefile, $histogramfile)
+{
+    $lastvalues = explode("\n",trim(file_get_contents($path.$sourcefile)));
+    writeValueToFile($sourcefile,'');
     $cur = 0;
     for ($i=0; $i<count($lastvalues); $i++)
     {
@@ -22,9 +24,9 @@ function writeValueToFile($file, $value, $append = false)
     }
     $average = $cur / floatval(count($lastvalues));
 
-    writeValueToFile('lastpv.txt',round($average), true); 
-    $lastvalues = explode("\n",trim(file_get_contents('/var/www/html/status/lastpv.txt')));
-    $fp = fopen('/var/www/html/status/lastpv.txt', 'w');
+    writeValueToFile($histogramfile,round($average), true); 
+    $lastvalues = explode("\n",trim(file_get_contents($path.$histogramfile)));
+    $fp = fopen($path.$histogramfile, 'w');
     flock($fp, LOCK_EX);
     $beginindex = count($lastvalues)-(130);
     if ($beginindex < 0) {
@@ -42,35 +44,11 @@ function writeValueToFile($file, $value, $append = false)
     } 
     flock($fp, LOCK_UN);
     fclose($fp);
+}
 
+processHistogram('/var/www/html/status/', 'pv_w.txt', 'lastpv.txt');
+processHistogram('/var/www/html/status/', 'use_w.txt', 'lastuse.txt');
+processHistogram('/var/www/html/status/', 'grid_w.txt', 'lastgrid.txt');
+processHistogram('/var/www/html/status/', 'battsoc_w.txt', 'lastbattsoc.txt');
+processHistogram('/var/www/html/status/', 'battuse_w.txt', 'lastbattuse.txt');
 
-    $lastvalues = explode("\n",trim(file_get_contents('/var/www/html/status/use_w.txt')));
-    writeValueToFile('use_w.txt','');
-    $cur = 0;
-    for ($i=0; $i<count($lastvalues); $i++)
-    {
-	if (trim($lastvalues[$i]) !== "")
-	    $cur += floatval($lastvalues[$i]);
-    }
-    $average = $cur / floatval(count($lastvalues));
-
-    writeValueToFile('lastuse.txt',round($average), true); 
-    $lastvalues = explode("\n",trim(file_get_contents('/var/www/html/status/lastuse.txt')));
-    $fp = fopen('/var/www/html/status/lastuse.txt', 'w');
-    flock($fp, LOCK_EX);
-    $beginindex = count($lastvalues)-(130);
-    if ($beginindex < 0) {
-	$beginindex = 0;
-    }
-    for ($i=$beginindex; $i<count($lastvalues); $i++)
-    {
-        if ($i>=0)
-	{
-	    $curuse = floatval($lastvalues[$i]);
-	    if ($curuse !== '') {
-		fwrite($fp, $curuse."\n");
-	    }
-	}
-    } 
-    flock($fp, LOCK_UN);
-    fclose($fp);

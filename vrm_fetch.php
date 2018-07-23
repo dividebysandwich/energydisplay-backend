@@ -16,13 +16,14 @@ function writeValueToFile($file, $value, $append = false)
     $connection = ssh2_connect('192.168.0.5', 22); // Add your Victron system IP address here
     if (ssh2_auth_password($connection, 'root', '')) { // Add your Victron root password here
       $i = 0;
-	  while ($i < 100) {
+	while ($i < 100) {
 	    $i++;
 	    $stream = ssh2_exec($connection, "dbus -y com.victronenergy.system / GetValue");
 	    stream_set_blocking($stream, true);
 	    $output = str_replace('\'', '"', stream_get_contents($stream));
 	    $output = str_replace('"AvailableBatteryServices": "{"', '"AvailableBatteryServices": {"', $output);
 	    $output = str_replace('"}",', '"},', $output);
+#        echo $output;
 	    echo "\n";
 	    fclose ($stream);
 	    $data = json_decode($output);
@@ -36,8 +37,11 @@ function writeValueToFile($file, $value, $append = false)
 	    $value_battery_current = $data->{'Dc/Battery/Current'};
 
 	    if ($value_battery_power > 0) {
-			$value_actualconsumption = $value_consumption - $value_battery_power; // Victron does not properly measure consumption, this is an incomplete fix that works about half the time
+		$value_actualconsumption = $value_consumption - $value_battery_power;
 	    }
+// else {
+//		$value_actualconsumption = $value_consumption + $value_battery_power;
+//	    }
 
 	    $output = '{"time":'.(time()*1000).',
 			"Grid": '.$value_grid.',
@@ -56,9 +60,11 @@ function writeValueToFile($file, $value, $append = false)
 	    writeValueToFile("soc.txt", round($value_battery_soc)."\n".round($value_pv/1000,1)."\n".round($value_actualconsumption/1000,1)."\n".round($value_grid/1000,1)."\n".round($value_battery_power/1000,1)."\n".date("H:i")."\n".date("j F Y"));
 	    writeValueToFile("pv_w.txt", round($value_pv), true);
 	    writeValueToFile("use_w.txt", round($value_actualconsumption), true);
+	    writeValueToFile("grid_w.txt", round($value_grid), true);
+	    writeValueToFile("battsoc_w.txt", round($value_battery_soc), true);
+	    writeValueToFile("battuse_w.txt", round($value_battery_power), true);
 
-		//Optionally write data to an Elasticsearch index
-	    /*$ch = curl_init();
+	    $ch = curl_init();
 	    curl_setopt($ch, CURLOPT_URL, 'http://127.0.0.1:9200/power/victron');
 	    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json','Content-Length: ' . strlen($output)));
 	    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
@@ -66,9 +72,9 @@ function writeValueToFile($file, $value, $append = false)
 	    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 	    $response  = curl_exec($ch);
 	    curl_close($ch);
-	    echo $response;*/
-	  }
-	  die();
+	    echo $response;
+	}
+		die();
     } else {
-	  die('Authentication Failed...');
+	die('Authentication Failed...');
     }
