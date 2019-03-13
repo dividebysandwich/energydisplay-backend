@@ -176,6 +176,9 @@ function writeValueToFile($file, $value, $append = false)
 	    fclose ($stream);
 	    $data = json_decode($output);
 	    $value_grid = $data->{'Ac/Grid/L1/Power'} + $data->{'Ac/Grid/L2/Power'} + $data->{'Ac/Grid/L3/Power'};
+            $value_consumption_L1 = $data->{'Ac/Consumption/L1/Power'};
+            $value_consumption_L2 = $data->{'Ac/Consumption/L2/Power'};
+            $value_consumption_L3 = $data->{'Ac/Consumption/L3/Power'};
 	    $value_consumption = $data->{'Ac/Consumption/L1/Power'} + $data->{'Ac/Consumption/L2/Power'} + $data->{'Ac/Consumption/L3/Power'};
 	    $value_pv = $data->{'Ac/PvOnGrid/L1/Power'} + $data->{'Ac/PvOnGrid/L2/Power'} + $data->{'Ac/PvOnGrid/L3/Power'};
 	    $value_battery_soc = $data->{'Dc/Battery/Soc'};
@@ -184,12 +187,15 @@ function writeValueToFile($file, $value, $append = false)
 	    $value_battery_voltage = $data->{'Dc/Battery/Voltage'};
 	    $value_battery_current = $data->{'Dc/Battery/Current'};
 
-	    if ($value_battery_power > 0) {
-		$value_actualconsumption = $value_consumption - $value_battery_power;
-	    }
-	    if ($value_actualconsumption < 0) {
-		$value_actualconsumption = 0;
-	    }
+            $value_efficiency = 100;
+            $value_losses = 0;
+            if ($value_pv > $value_consumption) {
+                $delta = $value_pv - $value_battery_power - $value_consumption;
+                if ($delta > 0) {
+                    $value_efficiency = 100.0 / $value_pv * ($value_battery_power + $value_consumption);
+                    $value_losses = $delta;
+                }
+            }
 
 	    $stream = ssh2_exec($connection, "nice -n 10 dbus -y com.victronenergy.grid.cgwacs_ttyUSB1_di32_mb1 / GetValue");
 	    stream_set_blocking($stream, true);
@@ -228,6 +234,8 @@ function writeValueToFile($file, $value, $append = false)
 			"Grid": '.$value_grid.',
 			"PV": '.$value_pv.',
 			"Consumption": '.$value_consumption.',
+			"Efficiency": '.$value_efficiency.',
+			"Losses": '.$value_losses.',
 			"ActualConsumption": '.$value_actualconsumption.',
 			"BatterySOC": '.$value_battery_soc.',
 			"BatteryVoltage": '.$value_battery_voltage.',
@@ -239,6 +247,9 @@ function writeValueToFile($file, $value, $append = false)
 			"GridPowerL1": '.$value_grid_power_L1.',
 			"GridPowerL2": '.$value_grid_power_L2.',
 			"GridPowerL3": '.$value_grid_power_L3.',
+			"GridConsumptionL1": '.$value_consumption_L1.',
+			"GridConsumptionL2": '.$value_consumption_L2.',
+			"GridConsumptionL3": '.$value_consumption_L3.',
 			"GridForwardL1": '.$value_grid_forward_L1.',
 			"GridForwardL2": '.$value_grid_forward_L2.',
 			"GridForwardL3": '.$value_grid_forward_L3.',
