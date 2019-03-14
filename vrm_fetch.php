@@ -195,6 +195,12 @@ function writeValueToFile($file, $value, $append = false)
                     $value_efficiency = 100.0 / $value_pv * ($value_battery_power + $value_consumption);
                     $value_losses = $delta;
                 }
+            } else if ($value_battery_power < 0) {
+                $delta = -$value_battery_power - $value_consumption - $value_pv;
+                if ($delta > 0) {
+                    $value_efficiency = 100.0 / -$value_battery_power * ($value_pv + $value_consumption);
+                    $value_losses = $delta;
+                }
             }
 
 	    $stream = ssh2_exec($connection, "nice -n 10 dbus -y com.victronenergy.grid.cgwacs_ttyUSB1_di32_mb1 / GetValue");
